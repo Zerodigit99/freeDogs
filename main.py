@@ -1,3 +1,4 @@
+import logging
 import requests
 from urllib.parse import urlparse, parse_qs
 import hashlib
@@ -5,12 +6,27 @@ import time
 import threading
 import telebot
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 # Set up your Telegram bot
 TOKEN = "7712603902:AAHGFpU5lAQFuUUPYlM1jbu1u6XJGgs15Js"
 bot = telebot.TeleBot(TOKEN)
-is_collecting = False  # Flag to control continuous collection
-chat_id = None  # Stores the chat ID for sending messages
-session_url = None  # Stores the session URL provided by the user
+is_collecting = False
+chat_id = None
+session_url = None
+
+# Define accepted scripts
+accepted_scripts = [
+    "Circle",
+    "MemeFi",
+    "Booms",
+    "Cherry Game",
+    "Paws",
+    "Seed",
+    "Blum",
+    "FreeDogs"  # Added FreeDogs to the accepted scripts
+]
 
 # Define headers and functions for coin collection
 headers = {
@@ -55,21 +71,21 @@ def do_click(init):
 
 def continuous_collect(init_url, interval=300):
     global is_collecting
-    try:
-        while is_collecting:
+    while is_collecting:
+        try:
             result = do_click(init_url)
-            if result.get('code') == 0 and result.get('msg') == 'OK':
-                print("Collection successful")  # For debugging
-            else:
-                bot.send_message(chat_id, f"Unexpected response: {result}")
-            
-            time.sleep(interval)
-    except Exception as e:
-        bot.send_message(chat_id, f"Bot stopped unexpectedly due to an error: {e}")
-        is_collecting = False  # Stop collecting in case of error
+            # You can comment out the following line if you do not want to log the result
+            logging.info(f"Collection Result: {result}")
+            bot.send_message(chat_id, "Successfully collected coins.")
+        except Exception as e:
+            bot.send_message(chat_id, f"An error occurred: {e}")
+            logging.error(f"An error occurred during collection: {e}")
+        
+        time.sleep(interval)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    logging.info("Received /start command")
     bot.send_message(
         message.chat.id, 
         "Hey! Welcome to Gray Zero Bot.\n\n"
@@ -79,46 +95,8 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['scripts'])
 def list_scripts(message):
-    bot.send_message(
-        message.chat.id, 
-        "Accepted scripts:\n"
-        "1. /circle\n"
-        "2. /memefi\n"
-        "3. /booms\n"
-        "4. /cherry_game\n"
-        "5. /paws\n"
-        "6. /seed\n"
-        "7. /blum\n"
-        "Use these commands to execute the respective scripts."
-    )
-
-@bot.message_handler(commands=['circle'])
-def circle_script(message):
-    bot.send_message(message.chat.id, "Executing Circle script...")  # Implement functionality
-
-@bot.message_handler(commands=['memefi'])
-def memefi_script(message):
-    bot.send_message(message.chat.id, "Executing MemeFi script...")  # Implement functionality
-
-@bot.message_handler(commands=['booms'])
-def booms_script(message):
-    bot.send_message(message.chat.id, "Executing Booms script...")  # Implement functionality
-
-@bot.message_handler(commands=['cherry_game'])
-def cherry_game_script(message):
-    bot.send_message(message.chat.id, "Executing Cherry Game script...")  # Implement functionality
-
-@bot.message_handler(commands=['paws'])
-def paws_script(message):
-    bot.send_message(message.chat.id, "Executing Paws script...")  # Implement functionality
-
-@bot.message_handler(commands=['seed'])
-def seed_script(message):
-    bot.send_message(message.chat.id, "Executing Seed script...")  # Implement functionality
-
-@bot.message_handler(commands=['blum'])
-def blum_script(message):
-    bot.send_message(message.chat.id, "Executing Blum script...")  # Implement functionality
+    script_list = "\n".join([f"{i+1}. {script}" for i, script in enumerate(accepted_scripts)])
+    bot.send_message(message.chat.id, f"Accepted scripts:\n{script_list}")
 
 @bot.message_handler(commands=['start_collecting'])
 def start_collecting(message):
@@ -158,8 +136,10 @@ def handle_text(message):
     if 'tgWebAppData' in message.text:
         session_url = message.text.strip()
         chat_id = message.chat.id
-        bot.send_message(chat_id, "Session URL received and accepted! You can now use /start to begin.")
+        bot.send_message(chat_id, "Session URL received! Now, use /start_collecting to begin.")
     else:
         bot.send_message(message.chat.id, "Please send a valid session URL (link containing `tgWebAppData`).")
 
-bot.polling()
+if __name__ == "__main__":
+    logging.info("Bot is starting...")
+    bot.polling()
