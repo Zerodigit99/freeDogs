@@ -55,28 +55,80 @@ def do_click(init):
 
 def continuous_collect(init_url, interval=300):
     global is_collecting
-    while is_collecting:
-        try:
+    try:
+        while is_collecting:
             result = do_click(init_url)
-            print(result)  # Print to console for debugging
-            # Send result to the bot for feedback
-            bot.send_message(chat_id, f"Collection Result: {result}")
-        except Exception as e:
-            bot.send_message(chat_id, f"An error occurred: {e}")
-        
-        time.sleep(interval)
+            if result.get('code') == 0 and result.get('msg') == 'OK':
+                print("Collection successful")  # For debugging
+            else:
+                bot.send_message(chat_id, f"Unexpected response: {result}")
+            
+            time.sleep(interval)
+    except Exception as e:
+        bot.send_message(chat_id, f"Bot stopped unexpectedly due to an error: {e}")
+        is_collecting = False  # Stop collecting in case of error
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.send_message(
+        message.chat.id, 
+        "Hey! Welcome to Gray Zero Bot.\n\n"
+        "This bot allows you to interact with various scripts and automation tools.\n"
+        "Use /scripts to view the list of available scripts you can use."
+    )
+
+@bot.message_handler(commands=['scripts'])
+def list_scripts(message):
+    bot.send_message(
+        message.chat.id, 
+        "Accepted scripts:\n"
+        "1. /circle\n"
+        "2. /memefi\n"
+        "3. /booms\n"
+        "4. /cherry_game\n"
+        "5. /paws\n"
+        "6. /seed\n"
+        "7. /blum\n"
+        "Use these commands to execute the respective scripts."
+    )
+
+@bot.message_handler(commands=['circle'])
+def circle_script(message):
+    bot.send_message(message.chat.id, "Executing Circle script...")  # Implement functionality
+
+@bot.message_handler(commands=['memefi'])
+def memefi_script(message):
+    bot.send_message(message.chat.id, "Executing MemeFi script...")  # Implement functionality
+
+@bot.message_handler(commands=['booms'])
+def booms_script(message):
+    bot.send_message(message.chat.id, "Executing Booms script...")  # Implement functionality
+
+@bot.message_handler(commands=['cherry_game'])
+def cherry_game_script(message):
+    bot.send_message(message.chat.id, "Executing Cherry Game script...")  # Implement functionality
+
+@bot.message_handler(commands=['paws'])
+def paws_script(message):
+    bot.send_message(message.chat.id, "Executing Paws script...")  # Implement functionality
+
+@bot.message_handler(commands=['seed'])
+def seed_script(message):
+    bot.send_message(message.chat.id, "Executing Seed script...")  # Implement functionality
+
+@bot.message_handler(commands=['blum'])
+def blum_script(message):
+    bot.send_message(message.chat.id, "Executing Blum script...")  # Implement functionality
 
 @bot.message_handler(commands=['start_collecting'])
 def start_collecting(message):
     global is_collecting, chat_id, session_url
     chat_id = message.chat.id
     
-    # If session URL hasn't been provided, prompt the user for it
     if not session_url:
         bot.send_message(chat_id, "Please send your session URL first (the link with `tgWebAppData`).")
         return
     
-    # Start the collecting process if not already running
     if not is_collecting:
         is_collecting = True
         bot.send_message(chat_id, "Started collecting coins every 5 minutes.")
@@ -84,7 +136,7 @@ def start_collecting(message):
     else:
         bot.send_message(chat_id, "Already collecting coins!")
 
-@bot.message_handler(commands=['stop_collecting'])
+@bot.message_handler(commands=['stop'])
 def stop_collecting(message):
     global is_collecting
     if is_collecting:
@@ -106,7 +158,7 @@ def handle_text(message):
     if 'tgWebAppData' in message.text:
         session_url = message.text.strip()
         chat_id = message.chat.id
-        bot.send_message(chat_id, "Session URL received! Now, use /start_collecting to begin.")
+        bot.send_message(chat_id, "Session URL received and accepted! You can now use /start to begin.")
     else:
         bot.send_message(message.chat.id, "Please send a valid session URL (link containing `tgWebAppData`).")
 
