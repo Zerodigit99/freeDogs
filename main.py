@@ -1,27 +1,46 @@
-import requests
-from urllib.parse import urlparse, parse_qs
-import hashlib
+import os
 import time
+import hashlib
 import threading
-import telebot
 import logging
+import requests
+import telebot
+from flask import Flask, request
+from urllib.parse import urlparse, parse_qs
 
-# Set up your Telegram bot
-TOKEN = "7712603902:AAHGFpU5lAQFuUUPYlM1jbu1u6XJGgs15Js"
-bot = telebot.TeleBot(TOKEN)
-sessions = {}  # Dictionary to store user sessions {chat_id: {'is_collecting': bool, 'session_url': str}}
-
-# Logging setup
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Define headers and functions for coin collection
+# Telegram bot setup
+TOKEN = "7712603902:AAHGFpU5lAQFuUUPYlM1jbu1u6XJGgs15Js"
+bot = telebot.TeleBot(TOKEN)
+
+# Flask app to handle webhook requests
+app = Flask(__name__)
+
+# Headers for requests to the coin-collection API
 headers = {
     'accept': 'application/json, text/plain, */*',
     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
     'authorization': '',
     'x-requested-with': 'org.telegram.messenger',
 }
+
+# Accepted scripts
+accepted_scripts = [
+    "Circle",
+    "MemeFi",
+    "Booms",
+    "Cherry Game",
+    "Paws",
+    "Seed",
+    "Blum",
+    "FreeDogs"
+]
+
+# Dictionary to track each user's session and collection status
+user_sessions = {}
 
 def compute_md5(amount, seq):
     prefix = str(amount) + str(seq) + "7be2a16a82054ee58398c5edb7ac4a5a"
@@ -57,33 +76,42 @@ def do_click(init):
     return response.json()
 
 def continuous_collect(chat_id, interval=60):
-    while sessions[chat_id]['is_collecting']:
+    while user_sessions[chat_id]["is_collecting"]:
         try:
-            result = do_click(sessions[chat_id]['session_url'])
-            logger.info(f"Collection result for {chat_id}: {result}")
+            result = do_click(user_sessions[chat_id]["session_url"])
             bot.send_message(chat_id, "Collection successful!")
         except Exception as e:
             bot.send_message(chat_id, f"An error occurred: {e}")
-        
         time.sleep(interval)
 
 @bot.message_handler(commands=['start'])
+def start(message):
+    bot.send_message(message.chat.id, "Hey! Welcome to Gray Zero Bot.\n\n"
+                                        "This bot allows you to interact with various scripts and automation tools.\n"
+                                        "Use /scripts to view the list of available scripts you can use.")
+
+@bot.message_handler(commands=['scripts'])
+def show_scripts(message):
+    scripts = "\n".join([f"{i + 1}. {script}" for i, script in enumerate(accepted_scripts)])
+    bot.send_message(message.chat.id, f"Accepted scripts:\n{scripts}")
+
+@bot.message_handler(commands=['start_collecting'])
 def start_collecting(message):
     chat_id = message.chat.id
     
-    # Initialize user session if not already present
-    if chat_id not in sessions:
-        sessions[chat_id] = {'is_collecting': False, 'session_url': None}
-
-    # Check if session URL is set
-    if not sessions[chat_id]['session_url']:
+    # Initialize user session if it doesn't exist
+    if chat_id not in user_sessions:
+        user_sessions[chat_id] = {"session_url": None, "is_collecting": False}
+    
+    # If session URL hasn't been provided, prompt the user for it
+    if not user_sessions[chat_id]["session_url"]:
         bot.send_message(chat_id, "Please send your session URL first (the link with `tgWebAppData`).")
         return
     
-    # Start collection if not already running for this user
-    if not sessions[chat_id]['is_collecting']:
-        sessions[chat_id]['is_collecting'] = True
-        bot.send_message(chat_id, "Started collecting coins every 1 minute.")
+    # Start the collecting process if not already running
+    if not user_sessions[chat_id]["is_collecting"]:
+        user_sessions[chat_id]["is_collecting"] = True
+        bot.send_message(chat_id, "Started collecting coins every minute.")
         threading.Thread(target=continuous_collect, args=(chat_id, 60)).start()
     else:
         bot.send_message(chat_id, "Already collecting coins!")
@@ -91,8 +119,8 @@ def start_collecting(message):
 @bot.message_handler(commands=['stop'])
 def stop_collecting(message):
     chat_id = message.chat.id
-    if chat_id in sessions and sessions[chat_id]['is_collecting']:
-        sessions[chat_id]['is_collecting'] = False
+    if user_sessions.get(chat_id, {}).get("is_collecting", False):
+        user_sessions[chat_id]["is_collecting"] = False
         bot.send_message(chat_id, "Stopped collecting coins.")
     else:
         bot.send_message(chat_id, "Coin collection is not active.")
@@ -100,8 +128,8 @@ def stop_collecting(message):
 @bot.message_handler(commands=['status'])
 def status(message):
     chat_id = message.chat.id
-    if chat_id in sessions and sessions[chat_id]['is_collecting']:
-        bot.send_message(chat_id, "Currently collecting coins every 1 minute.")
+    if user_sessions.get(chat_id, {}).get("is_collecting", False):
+        bot.send_message(chat_id, "Currently collecting coins every minute.")
     else:
         bot.send_message(chat_id, "Coin collection is inactive.")
 
@@ -109,13 +137,31 @@ def status(message):
 def handle_text(message):
     chat_id = message.chat.id
     if 'tgWebAppData' in message.text:
-        session_url = message.text.strip()
-        if chat_id not in sessions:
-            sessions[chat_id] = {'is_collecting': False, 'session_url': session_url}
-        else:
-            sessions[chat_id]['session_url'] = session_url
-        bot.send_message(chat_id, "Session URL accepted! Now, use /start to begin collecting.")
+        # Initialize user session if it doesn't exist
+        if chat_id not in user_sessions:
+            user_sessions[chat_id] = {"session_url": None, "is_collecting": False}
+        
+        # Store session URL for the user
+        user_sessions[chat_id]["session_url"] = message.text.strip()
+        bot.send_message(chat_id, "Session URL received! Now, use /start_collecting to begin.")
     else:
         bot.send_message(chat_id, "Please send a valid session URL (link containing `tgWebAppData`).")
 
-bot.polling()
+# Set webhook for the bot
+@app.route('/' + TOKEN, methods=['POST'])
+def webhook():
+    update = request.get_json()
+    bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return '', 200
+
+@app.route('/')
+def index():
+    return 'Bot is running!'
+
+if __name__ == "__main__":
+    # Set webhook
+    bot.remove_webhook()
+    bot.set_webhook(url='https://freedogs-1.onrender.com/' + TOKEN)
+
+    # Run Flask app
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
