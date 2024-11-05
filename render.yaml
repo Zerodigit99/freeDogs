@@ -1,0 +1,8 @@
+version: 1
+services:
+  - type: web
+    name: freeDogs
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "./start.sh"
