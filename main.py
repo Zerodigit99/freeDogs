@@ -7,6 +7,7 @@ import requests
 import telebot
 from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -89,9 +90,26 @@ def continuous_collect(user_id, interval=60):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "Hey! Welcome to Gray Zero Bot.\n\n"
-                                        "This bot allows you to interact with various scripts and automation tools.\n"
-                                        "Use /scripts to view the list of available scripts you can use.")
+    # Define welcome message
+    welcome_message = """
+Hello!!! Welcome to Gray Zero Airdrop Farmers
+
+Join Below Channels and Activate Mining:
+@gray_community
+
+Click the button after you've done so 👇
+"""
+    # Create inline keyboard
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("Verify Membership", callback_data='verify_membership'))
+    
+    # Send message with inline keyboard
+    bot.send_message(message.chat.id, welcome_message, reply_markup=keyboard)
+
+@bot.callback_query_handler(func=lambda call: call.data == 'verify_membership')
+def verify_membership(call):
+    bot.answer_callback_query(call.id, "Membership verified!")
+    bot.send_message(call.message.chat.id, "Thank you for verifying! You can now use other bot features.")
 
 @bot.message_handler(commands=['scripts'])
 def show_scripts(message):
