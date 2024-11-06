@@ -18,6 +18,7 @@ TOKEN = "7712603902:AAHGFpU5lAQFuUUPYlM1jbu1u6XJGgs15Js"
 bot = telebot.TeleBot(TOKEN)
 is_collecting = {}  # Dictionary to control collection status per user
 user_sessions = {}  # Dictionary to store each user's session URL
+required_channel = "@gray_community"
 
 # Flask app to handle webhook requests
 app = Flask(__name__)
@@ -88,44 +89,71 @@ def continuous_collect(user_id, interval=60):
         
         time.sleep(interval)
 
+def check_channel_membership(user_id):
+    """Check if the user is a member of the required channel."""
+    try:
+        member_status = bot.get_chat_member(required_channel, user_id)
+        return member_status.status in ["member", "administrator", "creator"]
+    except Exception:
+        return False
+
 @bot.message_handler(commands=['start'])
 def start(message):
-    # Define welcome message
-    welcome_message = """
+    user_id = message.chat.id
+    # Check if user is a member of the required channel
+    if not check_channel_membership(user_id):
+        # If not a member, send a prompt to join the channel
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
+        bot.send_message(user_id, "You must join our channel to use this bot.", reply_markup=keyboard)
+    else:
+        # Send welcome message with inline keyboard for verified users
+        welcome_message = """
 Hello!!! Welcome to Gray Zero Airdrop Farmers
 
-Join Below Channels and Activate Mining:
+Join the below channel and activate mining:
 @gray_community
 
 Click the button after you've done so 👇
 """
-    # Create inline keyboard
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("Verify Membership", callback_data='verify_membership'))
-    
-    # Send message with inline keyboard
-    bot.send_message(message.chat.id, welcome_message, reply_markup=keyboard)
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("Verify Membership", callback_data='verify_membership'))
+        bot.send_message(user_id, welcome_message, reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'verify_membership')
 def verify_membership(call):
-    bot.answer_callback_query(call.id, "Membership verified!")
-    bot.send_message(call.message.chat.id, "Thank you for verifying! You can now use other bot features.")
+    user_id = call.message.chat.id
+    if check_channel_membership(user_id):
+        bot.answer_callback_query(call.id, "Membership verified!")
+        bot.send_message(user_id, "Thank you for verifying! You can now use other bot features.")
+    else:
+        # If not a member, prompt to join the channel
+        bot.answer_callback_query(call.id, "Please join the required channel to proceed.")
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
+        bot.send_message(user_id, "You must join our channel to use this bot.", reply_markup=keyboard)
 
 @bot.message_handler(commands=['scripts'])
 def show_scripts(message):
-    scripts = "\n".join([f"{i + 1}. {script}" for i, script in enumerate(accepted_scripts)])
-    bot.send_message(message.chat.id, f"Accepted scripts:\n{scripts}")
+    user_id = message.chat.id
+    if check_channel_membership(user_id):
+        scripts = "\n".join([f"{i + 1}. {script}" for i, script in enumerate(accepted_scripts)])
+        bot.send_message(user_id, f"Accepted scripts:\n{scripts}")
+    else:
+        bot.send_message(user_id, "Please join our channel to access this feature.")
 
 @bot.message_handler(commands=['start_collecting'])
 def start_collecting(message):
     user_id = message.chat.id
 
-    # Check if session URL is provided by the user
+    if not check_channel_membership(user_id):
+        bot.send_message(user_id, "Please join our channel to access this feature.")
+        return
+
     if user_id not in user_sessions:
         bot.send_message(user_id, "Please send your session URL first (the link with `tgWebAppData`).")
         return
     
-    # Start collecting if not already active for the user
     if not is_collecting.get(user_id, False):
         is_collecting[user_id] = True
         bot.send_message(user_id, "Started collecting coins every minute.")
@@ -136,19 +164,14 @@ def start_collecting(message):
 @bot.message_handler(commands=['stop'])
 def stop_collecting(message):
     user_id = message.chat.id
-    if is_collecting.get(user_id, False):
-        is_collecting[user_id] = False
-        bot.send_message(user_id, "Stopped collecting coins.")
+    if check_channel_membership(user_id):
+        if is_collecting.get(user_id, False):
+            is_collecting[user_id] = False
+            bot.send_message(user_id, "Stopped collecting coins.")
+        else:
+            bot.send_message(user_id, "Coin collection is not active.")
     else:
-        bot.send_message(user_id, "Coin collection is not active.")
-
-@bot.message_handler(commands=['status'])
-def status(message):
-    user_id = message.chat.id
-    if is_collecting.get(user_id, False):
-        bot.send_message(user_id, "Currently collecting coins every minute.")
-    else:
-        bot.send_message(user_id, "Coin collection is inactive.")
+        bot.send_message(user_id, "Please join our channel to access this feature.")
 
 @bot.message_handler(commands=['list_sessions'])
 def list_sessions(message):
