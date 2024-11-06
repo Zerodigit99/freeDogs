@@ -101,24 +101,16 @@ def check_channel_membership(user_id):
 def start(message):
     user_id = message.chat.id
     # Check if user is a member of the required channel
-    if not check_channel_membership(user_id):
-        # If not a member, send a prompt to join the channel
+    if check_channel_membership(user_id):
+        # Send welcome message with inline keyboard for verified users
+        bot.send_message(user_id, "Hey! Welcome to Gray Zero Bot.\n\n"
+                                   "This bot allows you to interact with various scripts and automation tools.\n"
+                                   "Use /scripts to view the list of available scripts you can use.")
+    else:
+        # If not a member, prompt to join the channel with verification button
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
-        bot.send_message(user_id, "You must join our channel to use this bot.", reply_markup=keyboard)
-    else:
-        # Send welcome message with inline keyboard for verified users
-        welcome_message = """
-Hello!!! Welcome to Gray Zero Airdrop Farmers
-
-Join the below channel and activate mining:
-@gray_community
-
-Click the button after you've done so 👇
-"""
-        keyboard = InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton("Verify Membership", callback_data='verify_membership'))
-        bot.send_message(user_id, welcome_message, reply_markup=keyboard)
+        bot.send_message(user_id, "You must join our channel to use this bot. Click the button below to join, then press 'Verify Membership'.", reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'verify_membership')
 def verify_membership(call):
@@ -126,6 +118,7 @@ def verify_membership(call):
     if check_channel_membership(user_id):
         bot.answer_callback_query(call.id, "Membership verified!")
         bot.send_message(user_id, "Thank you for verifying! You can now use other bot features.")
+        start(call.message)  # Automatically start the bot after successful verification
     else:
         # If not a member, prompt to join the channel
         bot.answer_callback_query(call.id, "Please join the required channel to proceed.")
