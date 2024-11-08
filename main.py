@@ -8,7 +8,7 @@ import telebot
 from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
-from memeFi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
+from memefi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
