@@ -9,7 +9,7 @@ from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from memefi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
-
+from memefi.utils.headers import headers_set
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
