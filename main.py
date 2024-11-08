@@ -9,10 +9,15 @@ from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from memefi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
-from memefi.utils.headers import headers_set
-import sys
+import importlib.util
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'memefi'))
+
+# Path to headers.py file
+headers_path = os.path.join(os.path.dirname(__file__), 'utils', 'headers.py')
+spec = importlib.util.spec_from_file_location("headers", headers_path)
+headers = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(headers)
+headers_set = headers.headers_set
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
