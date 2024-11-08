@@ -10,6 +10,10 @@ from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from memefi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
 from memefi.utils.headers import headers_set
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'memefi'))
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
