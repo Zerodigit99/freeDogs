@@ -8,6 +8,7 @@ import telebot
 from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from memeFi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -100,14 +101,11 @@ def check_channel_membership(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.chat.id
-    # Check if user is a member of the required channel
     if check_channel_membership(user_id):
-        # Send welcome message with inline keyboard for verified users
         bot.send_message(user_id, "Hey! Welcome to Gray Zero Bot.\n\n"
                                    "This bot allows you to interact with various scripts and automation tools.\n"
                                    "Use /scripts to view the list of available scripts you can use.")
     else:
-        # If not a member, prompt to join the channel with verification button
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
         keyboard.add(InlineKeyboardButton("Verify Membership", callback_data='verify_membership'))
@@ -121,7 +119,6 @@ def verify_membership(call):
         bot.send_message(user_id, "Thank you for verifying! You can now use other bot features.")
         start(call.message)  # Automatically start the bot after successful verification
     else:
-        # If not a member, prompt to join the channel
         bot.answer_callback_query(call.id, "Please join the required channel to proceed.")
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
@@ -135,6 +132,24 @@ def show_scripts(message):
         bot.send_message(user_id, f"Accepted scripts:\n{scripts}")
     else:
         bot.send_message(user_id, "Please join our channel to access this feature.")
+
+@bot.message_handler(commands=['memefi'])
+def run_memefi(message):
+    user_id = message.chat.id
+
+    if not check_channel_membership(user_id):
+        bot.send_message(user_id, "Please join our channel to access this feature.")
+        return
+
+    if user_id not in user_sessions:
+        bot.send_message(user_id, "Please send your session URL first (the link with `tgWebAppData`).")
+        return
+    
+    try:
+        result = run_memefi_script(user_sessions[user_id])  # Assuming run_memefi_script takes session URL as input
+        bot.send_message(user_id, f"MemeFi Script executed successfully: {result}")
+    except Exception as e:
+        bot.send_message(user_id, f"An error occurred while running the MemeFi script: {e}")
 
 @bot.message_handler(commands=['start_collecting'])
 def start_collecting(message):
@@ -179,10 +194,10 @@ def list_sessions(message):
 def handle_text(message):
     user_id = message.chat.id
     if 'tgWebAppData' in message.text:
-        user_sessions[user_id] = message.text.strip()
-        bot.send_message(user_id, "Session URL received! Now, use /start_collecting to begin.")
+        user_sessions[user_id] = message.text.strip()  # Store the session URL for the user
+        bot.send_message(user_id, "Session URL successfully saved. You can now start collecting coins using /start_collecting.")
     else:
-        bot.send_message(user_id, "Please send a valid session URL (link containing `tgWebAppData`).")
+        bot.send_message(user_id, "Please provide a valid session URL to continue.")
 
 # Set webhook for the bot
 @app.route('/' + TOKEN, methods=['POST'])
@@ -193,9 +208,10 @@ def webhook():
 
 @app.route('/')
 def index():
-    return 'Bot is running!'
+    return "Bot is running!"
 
 if __name__ == "__main__":
+    # Set up the webhook for the bot to listen for incoming updates from Telegram
     bot.remove_webhook()
-    bot.set_webhook(url='https://freedogs-1.onrender.com/' + TOKEN)
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    time.sleep(1)
+    bot.set_webhook(url="https://freedogs-1.onrender.com/"
