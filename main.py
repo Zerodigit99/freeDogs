@@ -211,7 +211,6 @@ def index():
     return "Bot is running!"
 
 if __name__ == "__main__":
-    # Set up the webhook for the bot to listen for incoming updates from Telegram
     bot.remove_webhook()
-    time.sleep(1)
-    bot.set_webhook(url="https://freedogs-1.onrender.com/"
+    bot.set_webhook(url='https://freedogs-1.onrender.com/' + TOKEN)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
