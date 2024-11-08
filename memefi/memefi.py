@@ -7,6 +7,9 @@ import time
 import base64
 from datetime import datetime
 from urllib.parse import unquote
+import os
+print("Project root contents:", os.listdir("/opt/render/project/src"))
+print("memefi contents:", os.listdir("/opt/render/project/src/memefi"))
 from utils.headers import headers_set
 from utils.queries import QUERY_USER, QUERY_LOGIN, MUTATION_GAME_PROCESS_TAPS_BATCH, QUERY_BOOSTER, QUERY_NEXT_BOSS
 from utils.queries import QUERY_TASK_VERIF, QUERY_TASK_COMPLETED, QUERY_GET_TASK, QUERY_TASK_ID, QUERY_GAME_CONFIG
