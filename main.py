@@ -24,14 +24,14 @@ logger = logging.getLogger(__name__)
 # Telegram bot setup
 TOKEN = "7712603902:AAHGFpU5lAQFuUUPYlM1jbu1u6XJGgs15Js"
 bot = telebot.TeleBot(TOKEN)
-is_collecting = {}  # Dictionary to control collection status per user
-user_sessions = {}  # Dictionary to store each user's session URL
+is_collecting = {}
+user_sessions = {}
 required_channel = "@gray_community"
 
 # Flask app to handle webhook requests
 app = Flask(__name__)
 
-# Headers for requests to the coin-collection API
+# Headers for requests
 headers = {
     'accept': 'application/json, text/plain, */*',
     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
@@ -42,7 +42,6 @@ headers = {
 # Accepted scripts
 accepted_scripts = [
     "Circle",
-    "MemeFi",
     "Booms",
     "Cherry Game",
     "Paws",
@@ -51,7 +50,7 @@ accepted_scripts = [
     "FreeDogs"
 ]
 
-ADMIN_ID = 7175868924  # Admin user ID for accessing special commands
+ADMIN_ID = 7175868924
 
 def compute_md5(amount, seq):
     prefix = str(amount) + str(seq) + "7be2a16a82054ee58398c5edb7ac4a5a"
@@ -90,7 +89,7 @@ def continuous_collect(user_id, interval=60):
     while is_collecting.get(user_id, False):
         try:
             result = do_click(user_sessions[user_id])
-            if time.time() % (30 * 60) < interval:  # Sends success message every 30 minutes
+            if time.time() % (30 * 60) < interval:
                 bot.send_message(user_id, "Collection successful!")
         except Exception as e:
             bot.send_message(user_id, f"An error occurred: {e}")
@@ -98,7 +97,6 @@ def continuous_collect(user_id, interval=60):
         time.sleep(interval)
 
 def check_channel_membership(user_id):
-    """Check if the user is a member of the required channel."""
     try:
         member_status = bot.get_chat_member(required_channel, user_id)
         return member_status.status in ["member", "administrator", "creator"]
@@ -124,7 +122,7 @@ def verify_membership(call):
     if check_channel_membership(user_id):
         bot.answer_callback_query(call.id, "Membership verified!")
         bot.send_message(user_id, "Thank you for verifying! You can now use other bot features.")
-        start(call.message)  # Automatically start the bot after successful verification
+        start(call.message)
     else:
         bot.answer_callback_query(call.id, "Please join the required channel to proceed.")
         keyboard = InlineKeyboardMarkup()
@@ -139,24 +137,6 @@ def show_scripts(message):
         bot.send_message(user_id, f"Accepted scripts:\n{scripts}")
     else:
         bot.send_message(user_id, "Please join our channel to access this feature.")
-
-@bot.message_handler(commands=['memefi'])
-def run_memefi(message):
-    user_id = message.chat.id
-
-    if not check_channel_membership(user_id):
-        bot.send_message(user_id, "Please join our channel to access this feature.")
-        return
-
-    if user_id not in user_sessions:
-        bot.send_message(user_id, "Please send your session URL first (the link with `tgWebAppData`).")
-        return
-    
-    try:
-        result = run_memefi_script(user_sessions[user_id])  # Assuming run_memefi_script takes session URL as input
-        bot.send_message(user_id, f"MemeFi Script executed successfully: {result}")
-    except Exception as e:
-        bot.send_message(user_id, f"An error occurred while running the MemeFi script: {e}")
 
 @bot.message_handler(commands=['start_collecting'])
 def start_collecting(message):
@@ -189,24 +169,15 @@ def stop_collecting(message):
     else:
         bot.send_message(user_id, "Please join our channel to access this feature.")
 
-@bot.message_handler(commands=['list_sessions'])
-def list_sessions(message):
-    if message.chat.id == ADMIN_ID:
-        session_list = "\n".join([f"User ID: {uid}, Session URL: {url}" for uid, url in user_sessions.items()])
-        bot.send_message(ADMIN_ID, f"Active user sessions:\n{session_list}" if session_list else "No active sessions.")
-    else:
-        bot.send_message(message.chat.id, "You do not have permission to access this command.")
-
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
     user_id = message.chat.id
     if 'tgWebAppData' in message.text:
-        user_sessions[user_id] = message.text.strip()  # Store the session URL for the user
+        user_sessions[user_id] = message.text.strip()
         bot.send_message(user_id, "Session URL successfully saved. You can now start collecting coins using /start_collecting.")
     else:
         bot.send_message(user_id, "Please provide a valid session URL to continue.")
 
-# Set webhook for the bot
 @app.route('/' + TOKEN, methods=['POST'])
 def webhook():
     update = request.get_json()
