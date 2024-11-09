@@ -371,7 +371,11 @@ def main():
     query_id_file = 'path_to_your_query_id_file.txt'  # Replace with the actual file path
     with open(query_id_file, 'r') as file:
         query_id = file.read().strip()
-
+        
+    # Add a break statement or some processing logic here to avoid an infinite loop if that's not intended
+    # Example of breaking out of the loop (you can remove it if the infinite loop is intended)
+    break
+    
     # Kumpulkan informasi akun terlebih dahulu
     accounts = []
     for index, line in enumerate(lines):
