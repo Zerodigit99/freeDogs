@@ -368,12 +368,8 @@ def main():
     print("\r Get a list of valid accounts...", end="", flush=True)
   
     while True:
-    # Define the file path for query_id_file
     query_id_file = 'path_to_your_query_id_file.txt'  # Replace with the actual file path
-
-    # Now you can open the file
     with open(query_id_file, 'r') as file:
-        # Process the file content
         query_id = file.read().strip()
 
     # Kumpulkan informasi akun terlebih dahulu
