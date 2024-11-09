@@ -368,7 +368,8 @@ def main():
     print("\r Get a list of valid accounts...", end="", flush=True)
   
     while True:
-        with open('query_id.txt', 'r') as file:
+        query_id_file = os.path.join(BASE_DIR, 'query_id.txt')
+with open(query_id_file, 'r') as file:
             lines = file.readlines()
 
         # Kumpulkan informasi akun terlebih dahulu
