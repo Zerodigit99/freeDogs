@@ -16,11 +16,13 @@ from memefi.utils.queries import QUERY_TASK_VERIF, QUERY_TASK_COMPLETED, QUERY_G
 
 url = "https://api-gw-tg.memefi.club/graphql"
 def load_proxies():
-    with open('proxy.txt', 'r') as file:
+    proxy_file = os.path.join(BASE_DIR, 'proxy.txt')
+    with open(proxy_file, 'r') as file:
         proxies = [line.strip() for line in file.readlines()]
     return proxies
 
 proxies = load_proxies()
+
 
 # HANDLE SEMUA ERROR TAROH DISINI BANG SAFE_POST
 def safe_post(index,url, headers, json_payload):
