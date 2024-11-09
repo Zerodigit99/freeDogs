@@ -373,17 +373,17 @@ with open(query_id_file, 'r') as file:
             lines = file.readlines()
 
         # Kumpulkan informasi akun terlebih dahulu
-        accounts = []
-        for index, line in enumerate(lines):
-            result = None
-            try:
-                result = cek_user(index)
-            except Exception as e:
-                print("check error..........")
-            if result is not None:
-                first_name = result.get('firstName', 'Unknown')
-                last_name = result.get('lastName', 'Unknown')
-                league = result.get('league', 'Unknown')
+       accounts = []
+for index, line in enumerate(lines):
+    result = None
+    try:
+        result = cek_user(index)
+    except Exception as e:
+        print("check error..........")
+    if result is not None:
+        first_name = result.get('firstName', 'Unknown')
+        last_name = result.get('lastName', 'Unknown')
+        league = result.get('league', 'Unknown')
                 accounts.append((index, result, first_name, last_name, league))
             else:
                 print(f"❌ Account {index + 1}: Token is invalid or an error occurred")
