@@ -8,14 +8,6 @@ import telebot
 from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
-import importlib.util
-
-# Path to headers.py file
-headers_path = os.path.join(os.path.dirname(__file__), 'utils', 'headers.py')
-spec = importlib.util.spec_from_file_location("headers", headers_path)
-headers = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(headers)
-headers_set = headers.headers_set
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -24,14 +16,14 @@ logger = logging.getLogger(__name__)
 # Telegram bot setup
 TOKEN = "7712603902:AAHGFpU5lAQFuUUPYlM1jbu1u6XJGgs15Js"
 bot = telebot.TeleBot(TOKEN)
-is_collecting = {}
-user_sessions = {}
+is_collecting = {}  # Dictionary to control collection status per user
+user_sessions = {}  # Dictionary to store each user's session URL
 required_channel = "@gray_community"
 
 # Flask app to handle webhook requests
 app = Flask(__name__)
 
-# Headers for requests
+# Headers for requests to the coin-collection API
 headers = {
     'accept': 'application/json, text/plain, */*',
     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
@@ -42,6 +34,7 @@ headers = {
 # Accepted scripts
 accepted_scripts = [
     "Circle",
+    "MemeFi",
     "Booms",
     "Cherry Game",
     "Paws",
@@ -50,7 +43,7 @@ accepted_scripts = [
     "FreeDogs"
 ]
 
-ADMIN_ID = 7175868924
+ADMIN_ID = 7175868924  # Admin user ID for accessing special commands
 
 def compute_md5(amount, seq):
     prefix = str(amount) + str(seq) + "7be2a16a82054ee58398c5edb7ac4a5a"
@@ -89,7 +82,7 @@ def continuous_collect(user_id, interval=60):
     while is_collecting.get(user_id, False):
         try:
             result = do_click(user_sessions[user_id])
-            if time.time() % (30 * 60) < interval:
+            if time.time() % (30 * 60) < interval:  # Sends success message every 30 minutes
                 bot.send_message(user_id, "Collection successful!")
         except Exception as e:
             bot.send_message(user_id, f"An error occurred: {e}")
@@ -97,6 +90,7 @@ def continuous_collect(user_id, interval=60):
         time.sleep(interval)
 
 def check_channel_membership(user_id):
+    """Check if the user is a member of the required channel."""
     try:
         member_status = bot.get_chat_member(required_channel, user_id)
         return member_status.status in ["member", "administrator", "creator"]
@@ -106,11 +100,14 @@ def check_channel_membership(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.chat.id
+    # Check if user is a member of the required channel
     if check_channel_membership(user_id):
+        # Send welcome message with inline keyboard for verified users
         bot.send_message(user_id, "Hey! Welcome to Gray Zero Bot.\n\n"
                                    "This bot allows you to interact with various scripts and automation tools.\n"
                                    "Use /scripts to view the list of available scripts you can use.")
     else:
+        # If not a member, prompt to join the channel with verification button
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
         keyboard.add(InlineKeyboardButton("Verify Membership", callback_data='verify_membership'))
@@ -122,8 +119,9 @@ def verify_membership(call):
     if check_channel_membership(user_id):
         bot.answer_callback_query(call.id, "Membership verified!")
         bot.send_message(user_id, "Thank you for verifying! You can now use other bot features.")
-        start(call.message)
+        start(call.message)  # Automatically start the bot after successful verification
     else:
+        # If not a member, prompt to join the channel
         bot.answer_callback_query(call.id, "Please join the required channel to proceed.")
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton("Join Channel", url=f"https://t.me/{required_channel.strip('@')}"))
@@ -169,15 +167,24 @@ def stop_collecting(message):
     else:
         bot.send_message(user_id, "Please join our channel to access this feature.")
 
+@bot.message_handler(commands=['list_sessions'])
+def list_sessions(message):
+    if message.chat.id == ADMIN_ID:
+        session_list = "\n".join([f"User ID: {uid}, Session URL: {url}" for uid, url in user_sessions.items()])
+        bot.send_message(ADMIN_ID, f"Active user sessions:\n{session_list}" if session_list else "No active sessions.")
+    else:
+        bot.send_message(message.chat.id, "You do not have permission to access this command.")
+
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
     user_id = message.chat.id
     if 'tgWebAppData' in message.text:
         user_sessions[user_id] = message.text.strip()
-        bot.send_message(user_id, "Session URL successfully saved. You can now start collecting coins using /start_collecting.")
+        bot.send_message(user_id, "Session URL received! Now, use /start_collecting to begin.")
     else:
-        bot.send_message(user_id, "Please provide a valid session URL to continue.")
+        bot.send_message(user_id, "Please send a valid session URL (link containing `tgWebAppData`).")
 
+# Set webhook for the bot
 @app.route('/' + TOKEN, methods=['POST'])
 def webhook():
     update = request.get_json()
@@ -186,7 +193,7 @@ def webhook():
 
 @app.route('/')
 def index():
-    return "Bot is running!"
+    return 'Bot is running!'
 
 if __name__ == "__main__":
     bot.remove_webhook()
