@@ -55,27 +55,52 @@ def auth(url: str) -> dict:
     init = query_params.get('tgWebAppData', [None])[0]
     params = {'invitationCode': '', 'initData': init}
     data = {'invitationCode': '', 'initData': init}
+    
+    # Send POST request to authenticate and retrieve token
     response = requests.post('https://api.freedogs.bot/miniapps/api/user/telegram_auth', params=params, headers=headers, data=data)
+    
+    # Log the full response to check for the token
+    logger.info(f"Auth response: {response.text}")
+    
+    # Return the response JSON to access token
     return response.json()
 
 def do_click(init):
     auth_response = auth(init)
     token = auth_response.get('data', {}).get('token')
+    
+    # Check if the token is missing and log the error
     if not token:
         raise ValueError("Authorization token not found.")
-        
+    
+    # Set the authorization header
     headers['authorization'] = 'Bearer ' + token
 
-    response = requests.get('https://api.freedogs.bot/miniapps/api/user_game_level/GetGameInfo', headers=headers)
-    Seq = response.json()['data']['collectSeqNo']
+    # Log the authorization header to check if it's correctly set
+    logger.info(f"Authorization header: {headers['authorization']}")
 
+    # Make the request to get game info
+    response = requests.get('https://api.freedogs.bot/miniapps/api/user_game_level/GetGameInfo', headers=headers)
+    
+    # Ensure the response is valid before accessing the data
+    if response.status_code != 200:
+        raise ValueError(f"Failed to get game info. Status code: {response.status_code}")
+    
+    Seq = response.json()['data']['collectSeqNo']
+    
     hsh = compute_md5('100000', Seq)
     params = {
         'collectAmount': '100000',
         'hashCode': hsh,
         'collectSeqNo': str(Seq),
     }
+    # Post the coin collection request
     response = requests.post('https://api.freedogs.bot/miniapps/api/user_game/collectCoin', headers=headers, data=params)
+    
+    # Check the response and return it
+    if response.status_code != 200:
+        raise ValueError(f"Failed to collect coins. Status code: {response.status_code}")
+    
     return response.json()
 
 def continuous_collect(user_id, interval=60):
