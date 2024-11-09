@@ -368,7 +368,7 @@ def main():
     print("\r Get a list of valid accounts...", end="", flush=True)
 
 # Updated path for query_id.txt
-base_dir = '/freedogs/memefi'
+base_dir = '/opt/render/project/src/memefi/query_id.txt'
 query_id_file = os.path.join(base_dir, 'query_id.txt')
 
 while True:
