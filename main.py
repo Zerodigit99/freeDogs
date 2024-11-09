@@ -8,9 +8,7 @@ import telebot
 from flask import Flask, request
 from urllib.parse import urlparse, parse_qs
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
-from memefi.memefi import run_memefi_script  # Assuming memefi.py is in the memeFi directory
 import importlib.util
-import os
 
 # Path to headers.py file
 headers_path = os.path.join(os.path.dirname(__file__), 'utils', 'headers.py')
