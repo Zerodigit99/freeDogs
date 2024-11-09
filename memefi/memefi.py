@@ -15,6 +15,10 @@ from memefi.utils.queries import QUERY_USER, QUERY_LOGIN, MUTATION_GAME_PROCESS_
 from memefi.utils.queries import QUERY_TASK_VERIF, QUERY_TASK_COMPLETED, QUERY_GET_TASK, QUERY_TASK_ID, QUERY_GAME_CONFIG
 
 url = "https://api-gw-tg.memefi.club/graphql"
+
+# Define base directory for loading files dynamically based on the current file's location
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def load_proxies():
     proxy_file = os.path.join(BASE_DIR, 'proxy.txt')
     with open(proxy_file, 'r') as file:
