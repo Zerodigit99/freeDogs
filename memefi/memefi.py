@@ -366,16 +366,19 @@ def check_and_complete_tasks(index, headers):
 def main():
     print("Starting Memefi bot...")
     print("\r Get a list of valid accounts...", end="", flush=True)
-  
-    while True:
-    query_id_file = 'path_to_your_query_id_file.txt'  # Replace with the actual file path
+
+# Updated path for query_id.txt
+base_dir = '/freedogs/memefi'
+query_id_file = os.path.join(base_dir, 'query_id.txt')
+
+while True:
+    # Read the query ID from the correct file path
     with open(query_id_file, 'r') as file:
         query_id = file.read().strip()
-        
-    # Add a break statement or some processing logic here to avoid an infinite loop if that's not intended
-    # Example of breaking out of the loop (you can remove it if the infinite loop is intended)
+
+    # Add a break statement or some processing logic here if needed
     break
-    
+
     # Kumpulkan informasi akun terlebih dahulu
     accounts = []
     for index, line in enumerate(lines):
@@ -384,7 +387,7 @@ def main():
             result = cek_user(index)
         except Exception as e:
             print("check error..........")
-        
+
         if result is not None:
             first_name = result.get('firstName', 'Unknown')
             last_name = result.get('lastName', 'Unknown')
@@ -398,81 +401,81 @@ def main():
     for index, _, first_name, last_name, league in accounts:
         print(f"✅ [ Account {first_name} {last_name} ] | League 🏆 {league}")
 
-        # Setelah menampilkan semua akun, mulai memeriksa tugas
-        for index, result, first_name, last_name, league in accounts:
-            try:
-                print(f"\r[ Account {index + 1} ] {first_name} {last_name} Check the task...", end="", flush=True)
-                headers = {'Authorization': f'Bearer {result}'}
-                if cek_task_enable == 'y':
-                    check_and_complete_tasks(index, headers)
-                else:
-                    print(f"\r\n[ Account {index + 1} ] {first_name} {last_name} Cek task skipped\n", flush=True)
-                stat_result = cek_stat(index, headers)
-    
-                if stat_result is not None:
-                    user_data = stat_result
-                    output = (
-                        f"[ Account {index + 1} - {first_name} {last_name} ]\n"
-                        f"Coin 🪙  {user_data['coinsAmount']:,} 🔋 {user_data['currentEnergy']} - {user_data['maxEnergy']}\n"
-                        f"Level 🔫 {user_data['weaponLevel']} 🔋 {user_data['energyLimitLevel']} ⚡ {user_data['energyRechargeLevel']} 🤖 {user_data['tapBotLevel']}\n"
-                        f"Boss 👾 {user_data['currentBoss']['level']} ❤️ {user_data['currentBoss']['currentHealth']} - {user_data['currentBoss']['maxHealth']}\n"
-                        f"Free 🚀 {user_data['freeBoosts']['currentTurboAmount']} 🔋 {user_data['freeBoosts']['currentRefillEnergyAmount']}\n"
-                    )
-                    print(output, end="", flush=True)
-                    level_bos = user_data['currentBoss']['level']
-                    darah_bos = user_data['currentBoss']['currentHealth']
-    
-                    if darah_bos == 0:
-                        print("\nThe boss has been defeated, set the next boss...", flush=True)
-                        set_next_boss(index, headers)
-                    print("\rTapping 👆", end="", flush=True)
-    
-                    energy_sekarang = user_data['currentEnergy']
-                    energy_used = energy_sekarang - 100
-                    damage = user_data['weaponLevel'] + 1
-                    total_tap = energy_used // damage
-    
-                    if energy_sekarang < 0.25 * user_data['maxEnergy']:
-                        if auto_booster == 'y':
-                            if user_data['freeBoosts']['currentRefillEnergyAmount'] > 0:
-                                print("\r🪫 Energy Depleted, activate Recharge Booster... \n", end="", flush=True)
-                                activate_energy_recharge_booster(index, headers)
-                                continue  # Lanjutkan tapping setelah recharge
-                            else:
-                                print("\r🪫 Energy Depleted, no boosters available. Moving on to the next account.\n", flush=True)
-                                continue  # Beralih ke akun berikutnya
+    # Setelah menampilkan semua akun, mulai memeriksa tugas
+    for index, result, first_name, last_name, league in accounts:
+        try:
+            print(f"\r[ Account {index + 1} ] {first_name} {last_name} Check the task...", end="", flush=True)
+            headers = {'Authorization': f'Bearer {result}'}
+            if cek_task_enable == 'y':
+                check_and_complete_tasks(index, headers)
+            else:
+                print(f"\r\n[ Account {index + 1} ] {first_name} {last_name} Cek task skipped\n", flush=True)
+            stat_result = cek_stat(index, headers)
+
+            if stat_result is not None:
+                user_data = stat_result
+                output = (
+                    f"[ Account {index + 1} - {first_name} {last_name} ]\n"
+                    f"Coin 🪙  {user_data['coinsAmount']:,} 🔋 {user_data['currentEnergy']} - {user_data['maxEnergy']}\n"
+                    f"Level 🔫 {user_data['weaponLevel']} 🔋 {user_data['energyLimitLevel']} ⚡ {user_data['energyRechargeLevel']} 🤖 {user_data['tapBotLevel']}\n"
+                    f"Boss 👾 {user_data['currentBoss']['level']} ❤️ {user_data['currentBoss']['currentHealth']} - {user_data['currentBoss']['maxHealth']}\n"
+                    f"Free 🚀 {user_data['freeBoosts']['currentTurboAmount']} 🔋 {user_data['freeBoosts']['currentRefillEnergyAmount']}\n"
+                )
+                print(output, end="", flush=True)
+                level_bos = user_data['currentBoss']['level']
+                darah_bos = user_data['currentBoss']['currentHealth']
+
+                if darah_bos == 0:
+                    print("\nThe boss has been defeated, set the next boss...", flush=True)
+                    set_next_boss(index, headers)
+                print("\rTapping 👆", end="", flush=True)
+
+                energy_sekarang = user_data['currentEnergy']
+                energy_used = energy_sekarang - 100
+                damage = user_data['weaponLevel'] + 1
+                total_tap = energy_used // damage
+
+                if energy_sekarang < 0.25 * user_data['maxEnergy']:
+                    if auto_booster == 'y':
+                        if user_data['freeBoosts']['currentRefillEnergyAmount'] > 0:
+                            print("\r🪫 Energy Depleted, activate Recharge Booster... \n", end="", flush=True)
+                            activate_energy_recharge_booster(index, headers)
+                            continue  # Lanjutkan tapping setelah recharge
                         else:
-                            print("\r🪫 Energy is out, auto booster disabled. Moving on to the next account.\n", flush=True)
+                            print("\r🪫 Energy Depleted, no boosters available. Moving on to the next account.\n", flush=True)
                             continue  # Beralih ke akun berikutnya
-    
-                    tap_payload = {
-                        "operationName": "MutationGameProcessTapsBatch",
-                        "variables": {
-                            "payload": {
-                                "nonce": generate_random_nonce(),
-                                "tapsCount": total_tap
-                            }
-                        },
-                        "query": MUTATION_GAME_PROCESS_TAPS_BATCH
-                    }
-                    tap_result = submit_taps(index, tap_payload)
-                    if tap_result is not None:
-                        print(f"\rTapped ✅\n ")
                     else:
-                        print(f"❌ Failed with status {tap_result}, try again...")
-    
-                    if turbo_booster == 'y':
-                        if user_data['freeBoosts']['currentTurboAmount'] > 0:
-                            activate_booster(index, headers)
-            except Exception as e:
-                print("error...........")
-        print("=== [ ALL ACCOUNTS HAVE BEEN PROCESSED ] ===")
-       
-        wait_num =  random.randint(600, 2500)
-        animate_energy_recharge(wait_num)
+                        print("\r🪫 Energy is out, auto booster disabled. Moving on to the next account.\n", flush=True)
+                        continue  # Beralih ke akun berikutnya
 
-# Jalankan fungsi main() dan simpan hasilnya
+                tap_payload = {
+                    "operationName": "MutationGameProcessTapsBatch",
+                    "variables": {
+                        "payload": {
+                            "nonce": generate_random_nonce(),
+                            "tapsCount": total_tap
+                        }
+                    },
+                    "query": MUTATION_GAME_PROCESS_TAPS_BATCH
+                }
+                tap_result = submit_taps(index, tap_payload)
+                if tap_result is not None:
+                    print(f"\rTapped ✅\n ")
+                else:
+                    print(f"❌ Failed with status {tap_result}, try again...")
 
+                if turbo_booster == 'y':
+                    if user_data['freeBoosts']['currentTurboAmount'] > 0:
+                        activate_booster(index, headers)
+        except Exception as e:
+            print("error...........")
+
+    print("=== [ ALL ACCOUNTS HAVE BEEN PROCESSED ] ===")
+
+    wait_num = random.randint(600, 2500)
+    animate_energy_recharge(wait_num)
+
+# Function to animate energy recharge
 def animate_energy_recharge(duration):
     frames = ["|", "/", "-", "\\"]
     end_time = time.time() + duration
@@ -490,5 +493,5 @@ auto_booster = 'y'
 turbo_booster = 'y'
 god_mode = 'y'
 
-# Jalankan fungsi main() dan simpan hasilnya
+# Run the main function
 main()
