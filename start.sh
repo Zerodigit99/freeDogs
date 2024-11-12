@@ -1,3 +1,4 @@
-# start.sh
 #!/bin/bash
-python3 main.py
+
+# Start supervisor to manage both processes
+supervisord -c supervisord.conf
